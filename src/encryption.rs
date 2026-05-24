@@ -91,5 +91,4 @@ pub fn encrypt_and_compress_flow(contents: &mut Vec<u8>) {
             fs::write(FALLBACK_OUTPUT_FILE, &enc_finale).unwrap();
         }
     };
-    
 }

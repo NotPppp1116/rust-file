@@ -4,7 +4,7 @@ use chacha20poly1305::{
     aead::{Aead, KeyInit},
 };
 
-use std::fs::{ File};
+use std::fs::File;
 use std::io::Read;
 
 use crate::{compression, encryption::Encryption};
@@ -21,7 +21,7 @@ impl Encryption {
 
         encrypted_data
     }
-    fn recreate_key_from_EXIST_SALT(&mut self) {
+    fn recreate_key_from_exist_salt(&mut self) {
         Argon2::default()
             .hash_password_into(&self.password, &self.salt, &mut self.key)
             .unwrap();
@@ -51,6 +51,6 @@ pub fn decrypt_and_decomp(path: &str) -> Vec<u8> {
     encryption.ask_password();
 
     let content = encryption.get_salt_n_nounce(path);
-    encryption.recreate_key_from_EXIST_SALT();
+    encryption.recreate_key_from_exist_salt();
     encryption.decrypt_n_compress_to_dst(&content)
 }

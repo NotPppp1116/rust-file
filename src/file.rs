@@ -1,5 +1,6 @@
 use std::{
     fs, io,
+    mem::size_of_val,
     path::{Path, PathBuf},
 };
 
@@ -114,7 +115,7 @@ pub fn populate_metadata(info: &Vec<FileInfo>) -> Vec<Metadata> {
 
 pub fn create_archive(blob: &[Metadata]) -> ArchiveHead {
     ArchiveHead {
-        metadata_size: (size_of::<Metadata>() * blob.len()) as u32,
+        metadata_size: size_of_val(blob) as u32,
         metadata_start: size_of::<ArchiveHead>() as u64,
     }
 }
