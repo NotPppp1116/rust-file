@@ -1,6 +1,7 @@
-use std::{env, path::PathBuf, process::exit};
+use std::{env, fs, path::PathBuf, process::exit};
 
 mod compression;
+mod decrypt;
 mod encryption;
 mod file;
 mod utils;
@@ -38,10 +39,17 @@ fn main() {
                 }
 
                 encryption::encrypt_and_compress_flow(&mut final_blob);
+
+                //only keep the encrypted and compressed
+                fs::remove_file(&args[4]).expect("failed to delete file");
+
             }
-        } else if args[2] == "dec" {
-            //continue dectypt
         }
+    } else if args[2] == "--dec" && !args[3].is_empty() {
+        let _archive = decrypt::decrypt_and_decomp(&args[3]);
+
+        //TODO: now read the contents make the structs and reconstruct the original things
+
     } else {
         println!("launch with args\n");
         utils::help();

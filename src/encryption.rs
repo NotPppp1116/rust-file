@@ -16,11 +16,11 @@ use crate::compression;
 const OUTPUT_FILE: &str = "out.mole";
 const FALLBACK_OUTPUT_FILE: &str = "out324343.mole";
 
-struct Encryption {
-    password: Vec<u8>,
-    key: [u8; 32],
-    nonce: [u8; 24], //store it in archive
-    salt: [u8; 16],  //store it in archive
+pub struct Encryption {
+    pub password: Vec<u8>,
+    pub key: [u8; 32],
+    pub nonce: [u8; 24], //store it in archive
+    pub salt: [u8; 16],  //store it in archive
 }
 
 impl Drop for Encryption {
@@ -33,7 +33,7 @@ impl Drop for Encryption {
 }
 
 impl Encryption {
-    fn ask_password(&mut self) {
+    pub fn ask_password(&mut self) {
         let mut answer = String::new();
         io::stdin()
             .read_line(&mut answer)
@@ -51,6 +51,7 @@ impl Encryption {
     fn encrypt(&mut self, contents: &mut Vec<u8>) -> Vec<u8> {
         let cipher = XChaCha20Poly1305::new((&self.key).into());
 
+        SysRng.try_fill_bytes(&mut self.nonce).unwrap();
         let nonce = XNonce::from_slice(&self.nonce);
 
         let ciphertext = cipher.encrypt(nonce, contents.as_slice()).unwrap();
@@ -78,15 +79,17 @@ pub fn encrypt_and_compress_flow(contents: &mut Vec<u8>) {
         nonce: [0u8; 24],
         salt: [0u8; 16],
     };
+
     encryption.ask_password();
     encryption.derive_key();
-    let enc_finale = encryption.encrypt(contents);
+    let mut compressed = compression::compress(contents);
+    let enc_finale = encryption.encrypt(&mut compressed);
 
-    let compressed = compression::compress(&enc_finale);
-    match fs::write(OUTPUT_FILE, compressed) {
+    match fs::write(OUTPUT_FILE, &enc_finale) {
         Ok(v) => v,
         Err(_) => {
-            fs::write(FALLBACK_OUTPUT_FILE, contents).unwrap();
+            fs::write(FALLBACK_OUTPUT_FILE, &enc_finale).unwrap();
         }
     };
+    
 }

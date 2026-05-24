@@ -9,6 +9,6 @@ pub fn ask_number(message: &str) -> i32 {
         .expect("failed to read input");
     content.trim().parse().unwrap()
 }
-pub fn help(){
+pub fn help() {
     println!("args: --dir <directory_folder_path");
 }
