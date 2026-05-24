@@ -10,5 +10,7 @@ pub fn ask_number(message: &str) -> i32 {
     content.trim().parse().unwrap()
 }
 pub fn help() {
-    println!("args: --dir <directory_folder_path");
+    println!("usage:");
+    println!("  rust-file <ignored> --enc --dir <directory_path>");
+    println!("  rust-file <ignored> --dec <archive_path> [output_directory]");
 }

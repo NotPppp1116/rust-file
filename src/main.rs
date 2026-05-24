@@ -4,6 +4,7 @@ mod compression;
 mod decrypt;
 mod encryption;
 mod file;
+mod read_back;
 mod utils;
 // name --dir <path>
 
@@ -43,9 +44,10 @@ fn main() {
             fs::remove_file(&args[4]).expect("failed to delete file");
         }
     } else if args[2] == "--dec" && !args[3].is_empty() {
-        let _archive = decrypt::decrypt_and_decomp(&args[3]);
+        let archive = decrypt::decrypt_and_decomp(&args[3]);
+        let output_root = args.get(4).map_or(".", String::as_str);
 
-        //TODO: now read the contents make the structs and reconstruct the original things
+        read_back::restore_archive(&archive, output_root).expect("failed to restore archive");
     } else {
         println!("launch with args\n");
         utils::help();

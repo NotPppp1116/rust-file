@@ -52,20 +52,22 @@ pub fn read_dir(root: &Path) -> io::Result<Vec<FileInfo>> {
 }
 
 #[repr(C)]
+#[derive(Clone, Copy, Debug)]
 pub struct Metadata {
-    files_number: u64,
-    path_offset: u64,
-    path_size: u32,
-    content_offset: u64,
-    content_size: u64,
-    name_offset: u64,
-    name_size: u32,
+    pub files_number: u64,
+    pub path_offset: u64,
+    pub path_size: u32,
+    pub content_offset: u64,
+    pub content_size: u64,
+    pub name_offset: u64,
+    pub name_size: u32,
 }
 
 #[repr(C)]
+#[derive(Clone, Copy, Debug)]
 pub struct ArchiveHead {
-    metadata_size: u32,
-    metadata_start: u64,
+    pub metadata_size: u32,
+    pub metadata_start: u64,
 }
 
 pub fn populate_metadata(info: &Vec<FileInfo>) -> Vec<Metadata> {
