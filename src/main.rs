@@ -10,10 +10,21 @@ mod utils;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
+    let command_index = match args.get(1).map(String::as_str) {
+        Some("--enc" | "--dec" | "--mole") => 1,
+        _ => 2,
+    };
 
-    if args[2] == "--enc" && !args[3].is_empty() {
-        if args[3] == "--dir" && !args[4].is_empty() {
-            let file_blob = file::read_dir(&PathBuf::from(&args[4])).unwrap();
+    match args.get(command_index).map(String::as_str) {
+        Some("--enc") if args.get(command_index + 1).map(String::as_str) == Some("--dir") => {
+            let Some(directory_path) = args.get(command_index + 2).filter(|path| !path.is_empty())
+            else {
+                println!("launch with args\n");
+                utils::help();
+                exit(1);
+            };
+
+            let file_blob = file::read_dir(&PathBuf::from(directory_path)).unwrap();
             let metadata_blob = file::populate_metadata(&file_blob);
             let head = file::create_archive(&metadata_blob);
 
@@ -41,16 +52,25 @@ fn main() {
             encryption::encrypt_and_compress_flow(&mut final_blob);
 
             //only keep the encrypted and compressed
-            fs::remove_file(&args[4]).expect("failed to delete file");
+            fs::remove_file(directory_path).expect("failed to delete file");
         }
-    } else if args[2] == "--dec" && !args[3].is_empty() {
-        let archive = decrypt::decrypt_and_decomp(&args[3]);
-        let output_root = args.get(4).map_or(".", String::as_str);
+        Some("--dec") => {
+            let Some(archive_path) = args.get(command_index + 1).filter(|path| !path.is_empty())
+            else {
+                println!("launch with args\n");
+                utils::help();
+                exit(1);
+            };
+            let archive = decrypt::decrypt_and_decomp(archive_path);
+            let output_root = args.get(command_index + 2).map_or(".", String::as_str);
 
-        read_back::restore_archive(&archive, output_root).expect("failed to restore archive");
-    } else {
-        println!("launch with args\n");
-        utils::help();
-        exit(1);
+            read_back::restore_archive(&archive, output_root).expect("failed to restore archive");
+        }
+        Some("--mole") => utils::easteregg(),
+        _ => {
+            println!("launch with args\n");
+            utils::help();
+            exit(1);
+        }
     }
 }
