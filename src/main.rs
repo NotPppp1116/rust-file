@@ -52,7 +52,7 @@ fn main() {
             encryption::encrypt_and_compress_flow(&mut final_blob);
 
             //only keep the encrypted and compressed
-            fs::remove_file(directory_path).expect("failed to delete file");
+            fs::remove_dir_all(directory_path).expect("failed to delete file");
         }
         Some("--dec") => {
             let Some(archive_path) = args.get(command_index + 1).filter(|path| !path.is_empty())
