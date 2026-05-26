@@ -1,10 +1,10 @@
-use rand::Rng;
 use rand::prelude::*;
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::{env, fs, path::PathBuf, process::exit};
 
 mod compression;
 mod decrypt;
+mod discovery;
 mod encryption;
 mod file;
 mod read_back;
@@ -32,7 +32,7 @@ macro_rules! uinique_name {
 async fn main() {
     let args: Vec<String> = env::args().collect();
     let command_index = match args.get(1).map(String::as_str) {
-        Some("--enc" | "--dec" | "--mole") => 1,
+        Some("--enc" | "--dec" | "--mole" | "--discover-serve" | "--find-receiver") => 1,
         _ => 2,
     };
 
@@ -75,6 +75,7 @@ async fn main() {
             let finale = encryption::encrypt_and_compress_flow(&mut final_blob);
 
             //check if we want to send somewhere or no
+            let mut archive_written = false;
             match (
                 args.get(command_index + 3).map(String::as_str),
                 args.get(command_index + 4),
@@ -84,14 +85,18 @@ async fn main() {
                         .await
                         .expect("failed to send archive");
                 }
-                (Some("--recieve"), Some(port)) if !port.is_empty() => {
-                    send::recieve_single(port)
+                (Some("--receive" | "--recieve"), Some(port)) if !port.is_empty() => {
+                    let received = send::recieve_single(port)
                         .await
                         .expect("failed to receive archive");
+                    fs::write(&file_name, received).expect("failed to write received archive");
+                    archive_written = true;
                 }
                 _ => {}
             }
-            fs::write(file_name, &finale).expect("failed to write archive");
+            if !archive_written {
+                fs::write(file_name, &finale).expect("failed to write archive");
+            }
 
             fs::remove_dir_all(directory_path).expect("failed to delete file");
         }
@@ -108,6 +113,31 @@ async fn main() {
             read_back::restore_archive(&archive, output_root).expect("failed to restore archive");
         }
         Some("--mole") => utils::easteregg(),
+        Some("--discover-serve") => {
+            let (Some(file_name), Some(receiver_addr)) =
+                (args.get(command_index + 1), args.get(command_index + 2))
+            else {
+                println!("launch with args\n");
+                utils::help();
+                exit(1);
+            };
+
+            discovery::discovery_serve(file_name, receiver_addr)
+                .await
+                .expect("failed to serve receiver discovery");
+        }
+        Some("--find-receiver") => {
+            let Some(file_name) = args.get(command_index + 1) else {
+                println!("launch with args\n");
+                utils::help();
+                exit(1);
+            };
+
+            let receiver = discovery::find_receiver(file_name)
+                .await
+                .expect("failed to find receiver");
+            println!("{receiver}");
+        }
         _ => {
             println!("launch with args\n");
             utils::help();

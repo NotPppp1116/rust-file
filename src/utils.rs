@@ -19,7 +19,10 @@ pub fn ask_number(message: &str) -> i32 {
 pub fn help() {
     println!("usage:");
     println!("  rust-file --enc --dir <directory_path> [--send <host:port>]");
+    println!("  rust-file --enc --dir <directory_path> [--receive <port>]");
     println!("  rust-file --dec <archive_path> [output_directory]");
+    println!("  rust-file --discover-serve <file_name> <host:port>");
+    println!("  rust-file --find-receiver <file_name>");
 }
 pub fn easteregg() {
     println!("%%@@@@%%%%%%%%%%#%%@@@@%%%%%##%%%%%%%@@@%%%%%#%%%%#%%%%%%%@%%%%@@@%%%%%%%%%%@@%%%%%%@@@@@@@@@%%%%%@@%%%%@@@@%
