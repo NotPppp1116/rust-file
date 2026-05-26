@@ -23,11 +23,14 @@ macro_rules! uinique_name {
 }
 #[tokio::main]
 async fn main() {
+
     let args: Vec<String> = env::args().collect();
     let command_index = match args.get(1).map(String::as_str) {
         Some("--enc" | "--dec" | "--mole") => 1,
         _ => 2,
     };
+
+    let file_name = uinique_name!();
 
     match args.get(command_index).map(String::as_str) {
         Some("--enc") if args.get(command_index + 1).map(String::as_str) == Some("--dir") => {
@@ -82,7 +85,7 @@ async fn main() {
                 }
                 _ => {}
             }
-            fs::write(uinique_name!(), &finale).expect("failed to write archive");
+            fs::write(file_name, &finale).expect("failed to write archive");
 
             fs::remove_dir_all(directory_path).expect("failed to delete file");
         }
