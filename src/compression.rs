@@ -15,7 +15,11 @@ pub fn compress(data: &Vec<u8>) -> Vec<u8> {
         }
     };
 
-    encode_all(data.as_slice(), level).expect("zstd compression failed")
+    compress_with_level(data.as_slice(), level)
+}
+
+pub fn compress_with_level(data: &[u8], level: i32) -> Vec<u8> {
+    encode_all(data, level).expect("zstd compression failed")
 }
 
 pub fn decompress_bytes(data: &[u8]) -> Vec<u8> {

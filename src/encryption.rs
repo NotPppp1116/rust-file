@@ -82,3 +82,38 @@ pub fn encrypt_and_compress_flow(contents: &mut Vec<u8>) -> Vec<u8> {
 
     encryption.encrypt(&mut compressed)
 }
+
+#[cfg(test)]
+pub fn encrypt_and_compress_with_password(
+    contents: &[u8],
+    password: &[u8],
+    compression_level: i32,
+) -> Vec<u8> {
+    let mut encryption = Encryption {
+        password: password.to_vec(),
+        key: [0u8; 32],
+        nonce: [0u8; 24],
+        salt: [0u8; 16],
+    };
+
+    encryption.derive_key();
+    let mut compressed = compression::compress_with_level(contents, compression_level);
+
+    encryption.encrypt(&mut compressed)
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn compression_encryption_flow_round_trips() {
+        let input = b"hello encrypted compressed world".to_vec();
+        let password = b"test-password\n";
+
+        let encrypted = encrypt_and_compress_with_password(&input, password, 3);
+        let decrypted = crate::decrypt::decrypt_and_decomp_bytes(&encrypted, password);
+
+        assert_eq!(input, decrypted);
+    }
+}

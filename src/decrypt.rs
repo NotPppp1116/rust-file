@@ -54,3 +54,18 @@ pub fn decrypt_and_decomp(path: &str) -> Vec<u8> {
     encryption.recreate_key_from_exist_salt();
     encryption.decrypt_n_compress_to_dst(&content)
 }
+
+#[cfg(test)]
+pub fn decrypt_and_decomp_bytes(data: &[u8], password: &[u8]) -> Vec<u8> {
+    let mut encryption = Encryption {
+        password: password.to_vec(),
+        key: [0u8; 32],
+        nonce: [0u8; 24],
+        salt: [0u8; 16],
+    };
+
+    encryption.salt.copy_from_slice(&data[..16]);
+    encryption.nonce.copy_from_slice(&data[16..40]);
+    encryption.recreate_key_from_exist_salt();
+    encryption.decrypt_n_compress_to_dst(&data[40..].to_vec())
+}
