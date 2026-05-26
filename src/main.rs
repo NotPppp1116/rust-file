@@ -1,5 +1,8 @@
+use rand::Rng;
+use rand::prelude::*;
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::{env, fs, path::PathBuf, process::exit};
+
 mod compression;
 mod decrypt;
 mod encryption;
@@ -18,12 +21,15 @@ macro_rules! uinique_name {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        format!("{}_{}.{}", NAME, now, EXT)
+        let pid = std::process::id();
+
+        let mut rng = rand::rng();
+        let num: u64 = rng.random();
+        format!("{}_{}_{}_{}.{}", NAME, num, pid, now, EXT)
     }};
 }
 #[tokio::main]
 async fn main() {
-
     let args: Vec<String> = env::args().collect();
     let command_index = match args.get(1).map(String::as_str) {
         Some("--enc" | "--dec" | "--mole") => 1,
