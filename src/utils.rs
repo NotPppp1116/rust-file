@@ -1,17 +1,24 @@
 use std::io::{self, Write};
 
 pub fn ask_number(message: &str) -> i32 {
-    let mut content = String::new();
-    print!("{message}");
-    io::stdout().flush().expect("failed to flush stdout");
-    io::stdin()
-        .read_line(&mut content)
-        .expect("failed to read input");
-    content.trim().parse().unwrap()
+    loop {
+        let mut content = String::new();
+        print!("{message}");
+        io::stdout().flush().expect("failed to flush stdout");
+        io::stdin()
+            .read_line(&mut content)
+            .expect("failed to read input");
+
+        if let Ok(number) = content.trim().parse() {
+            return number;
+        }
+
+        println!("please enter a valid number");
+    }
 }
 pub fn help() {
     println!("usage:");
-    println!("  rust-file --enc --dir <directory_path>");
+    println!("  rust-file --enc --dir <directory_path> [--send <host:port>]");
     println!("  rust-file --dec <archive_path> [output_directory]");
 }
 pub fn easteregg() {

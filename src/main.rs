@@ -66,15 +66,21 @@ async fn main() {
             let finale = encryption::encrypt_and_compress_flow(&mut final_blob);
 
             //check if we want to send somewhere or no
-            if args[command_index + 2] == "--send" && !args[command_index + 3].is_empty() {
-                send::send_single(&args[command_index + 3], &final_blob)
-                    .await
-                    .expect("failed to send archive");
-            } else if args[command_index + 2] == "--recieve" && !args[command_index + 3].is_empty()
-            {
-                send::recieve_single(&args[command_index + 3])
-                    .await
-                    .expect("failed to receive archive");
+            match (
+                args.get(command_index + 3).map(String::as_str),
+                args.get(command_index + 4),
+            ) {
+                (Some("--send"), Some(destination)) if !destination.is_empty() => {
+                    send::send_single(destination, &finale)
+                        .await
+                        .expect("failed to send archive");
+                }
+                (Some("--recieve"), Some(port)) if !port.is_empty() => {
+                    send::recieve_single(port)
+                        .await
+                        .expect("failed to receive archive");
+                }
+                _ => {}
             }
             fs::write(uinique_name!(), &finale).expect("failed to write archive");
 

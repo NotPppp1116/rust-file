@@ -21,3 +21,19 @@ pub fn compress(data: &Vec<u8>) -> Vec<u8> {
 pub fn decompress_bytes(data: &[u8]) -> Vec<u8> {
     decode_all(data).expect("zstd decompression failed")
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn compress_uncompress() {
+        let input = String::from("helo world? ?");
+
+        let compressed = encode_all(input.as_bytes(), 3).expect("zstd compression failed");
+        let uncompress = decompress_bytes(&compressed);
+        let string = String::from_utf8(uncompress).unwrap();
+
+        assert_eq!(input, string);
+    }
+}

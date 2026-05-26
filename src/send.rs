@@ -21,5 +21,3 @@ pub async fn recieve_single(port: &str) -> io::Result<Vec<u8>> {
 
     Ok(data)
 }
-
-
