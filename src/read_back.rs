@@ -1,23 +1,10 @@
 use std::{
     fs,
     io::{self, ErrorKind},
-    mem::size_of,
     path::{Component, Path, PathBuf},
 };
 
-use crate::file::{ArchiveHead, FileInfo, Metadata};
-
-fn read_struct<T: Copy>(archive: &[u8], offset: usize) -> io::Result<T> {
-    let end = offset
-        .checked_add(size_of::<T>())
-        .ok_or_else(|| io::Error::new(ErrorKind::InvalidData, "archive offset overflow"))?;
-
-    let bytes = archive
-        .get(offset..end)
-        .ok_or_else(|| io::Error::new(ErrorKind::UnexpectedEof, "archive ended early"))?;
-
-    Ok(unsafe { std::ptr::read_unaligned(bytes.as_ptr().cast::<T>()) })
-}
+use crate::file::{ARCHIVE_HEAD_SIZE, FileInfo, METADATA_SIZE, Metadata};
 
 fn read_bytes(archive: &[u8], offset: u64, size: u64) -> io::Result<&[u8]> {
     let offset = usize::try_from(offset)
@@ -31,6 +18,38 @@ fn read_bytes(archive: &[u8], offset: u64, size: u64) -> io::Result<&[u8]> {
     archive
         .get(offset..end)
         .ok_or_else(|| io::Error::new(ErrorKind::UnexpectedEof, "archive ended early"))
+}
+
+fn read_u32(archive: &[u8], offset: usize) -> io::Result<u32> {
+    let bytes: [u8; 4] = archive
+        .get(offset..offset + 4)
+        .ok_or_else(|| io::Error::new(ErrorKind::UnexpectedEof, "archive ended early"))?
+        .try_into()
+        .unwrap();
+
+    Ok(u32::from_le_bytes(bytes))
+}
+
+fn read_u64(archive: &[u8], offset: usize) -> io::Result<u64> {
+    let bytes: [u8; 8] = archive
+        .get(offset..offset + 8)
+        .ok_or_else(|| io::Error::new(ErrorKind::UnexpectedEof, "archive ended early"))?
+        .try_into()
+        .unwrap();
+
+    Ok(u64::from_le_bytes(bytes))
+}
+
+fn read_metadata(archive: &[u8], offset: usize) -> io::Result<Metadata> {
+    Ok(Metadata {
+        files_number: read_u64(archive, offset)?,
+        path_offset: read_u64(archive, offset + 8)?,
+        path_size: read_u32(archive, offset + 16)?,
+        content_offset: read_u64(archive, offset + 20)?,
+        content_size: read_u64(archive, offset + 28)?,
+        name_offset: read_u64(archive, offset + 36)?,
+        name_size: read_u32(archive, offset + 44)?,
+    })
 }
 
 fn validate_relative_path(path: &Path) -> io::Result<()> {
@@ -57,14 +76,13 @@ fn validate_relative_path(path: &Path) -> io::Result<()> {
 }
 
 pub fn read_archive(archive: &[u8]) -> io::Result<Vec<FileInfo>> {
-    let head: ArchiveHead = read_struct(archive, 0)?;
-    let metadata_size = usize::try_from(head.metadata_size)
+    let metadata_size = usize::try_from(read_u32(archive, 0)?)
         .map_err(|_| io::Error::new(ErrorKind::InvalidData, "metadata size is too large"))?;
-    let metadata_start = usize::try_from(head.metadata_start)
+    let metadata_start = usize::try_from(read_u64(archive, 4)?)
         .map_err(|_| io::Error::new(ErrorKind::InvalidData, "metadata start is too large"))?;
-    let metadata_item_size = size_of::<Metadata>();
+    let metadata_item_size = METADATA_SIZE as usize;
 
-    if metadata_item_size == 0 || metadata_size % metadata_item_size != 0 {
+    if metadata_start != ARCHIVE_HEAD_SIZE as usize || metadata_size % metadata_item_size != 0 {
         return Err(io::Error::new(
             ErrorKind::InvalidData,
             "metadata size does not match archive format",
@@ -79,7 +97,7 @@ pub fn read_archive(archive: &[u8]) -> io::Result<Vec<FileInfo>> {
             .checked_add(index * metadata_item_size)
             .ok_or_else(|| io::Error::new(ErrorKind::InvalidData, "metadata offset overflow"))?;
 
-        let item: Metadata = read_struct(archive, offset)?;
+        let item = read_metadata(archive, offset)?;
 
         if item.files_number != files_number as u64 {
             return Err(io::Error::new(

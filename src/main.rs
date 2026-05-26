@@ -32,7 +32,10 @@ macro_rules! uinique_name {
 async fn main() {
     let args: Vec<String> = env::args().collect();
     let command_index = match args.get(1).map(String::as_str) {
-        Some("--enc" | "--dec" | "--mole" | "--discover-serve" | "--find-receiver") => 1,
+        Some(
+            "--enc" | "--dec" | "--mole" | "--receive" | "--recieve" | "--discover-serve"
+            | "--find-receiver",
+        ) => 1,
         _ => 2,
     };
 
@@ -54,10 +57,10 @@ async fn main() {
             //use this for encryption
             let mut final_blob = Vec::new();
 
-            file::append_struct(&mut final_blob, &head);
+            file::append_archive_head(&mut final_blob, &head);
 
             for meta in &metadata_blob {
-                file::append_struct(&mut final_blob, meta);
+                file::append_metadata(&mut final_blob, meta);
             }
 
             for file in &file_blob {
@@ -65,7 +68,7 @@ async fn main() {
             }
 
             for file in &file_blob {
-                final_blob.extend_from_slice(file.path.to_string_lossy().as_bytes());
+                final_blob.extend_from_slice(&file::path_archive_bytes(&file.path));
             }
 
             for file in &file_blob {
@@ -75,7 +78,6 @@ async fn main() {
             let finale = encryption::encrypt_and_compress_flow(&mut final_blob);
 
             //check if we want to send somewhere or no
-            let mut archive_written = false;
             match (
                 args.get(command_index + 3).map(String::as_str),
                 args.get(command_index + 4),
@@ -85,20 +87,23 @@ async fn main() {
                         .await
                         .expect("failed to send archive");
                 }
-                (Some("--receive" | "--recieve"), Some(port)) if !port.is_empty() => {
-                    let received = send::recieve_single(port)
-                        .await
-                        .expect("failed to receive archive");
-                    fs::write(&file_name, received).expect("failed to write received archive");
-                    archive_written = true;
-                }
                 _ => {}
             }
-            if !archive_written {
-                fs::write(file_name, &finale).expect("failed to write archive");
-            }
+            fs::write(file_name, &finale).expect("failed to write archive");
 
             fs::remove_dir_all(directory_path).expect("failed to delete file");
+        }
+        Some("--receive" | "--recieve") => {
+            let Some(port) = args.get(command_index + 1).filter(|port| !port.is_empty()) else {
+                println!("launch with args\n");
+                utils::help();
+                exit(1);
+            };
+
+            let received = send::recieve_single(port)
+                .await
+                .expect("failed to receive archive");
+            fs::write(file_name, received).expect("failed to write received archive");
         }
         Some("--dec") => {
             let Some(archive_path) = args.get(command_index + 1).filter(|path| !path.is_empty())
@@ -107,7 +112,8 @@ async fn main() {
                 utils::help();
                 exit(1);
             };
-            let archive = decrypt::decrypt_and_decomp(archive_path);
+            let archive =
+                decrypt::decrypt_and_decomp(archive_path).expect("failed to decrypt archive");
             let output_root = args.get(command_index + 2).map_or(".", String::as_str);
 
             read_back::restore_archive(&archive, output_root).expect("failed to restore archive");

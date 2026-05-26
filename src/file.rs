@@ -1,8 +1,10 @@
 use std::{
     fs, io,
-    mem::size_of_val,
     path::{Path, PathBuf},
 };
+
+pub const ARCHIVE_HEAD_SIZE: u64 = 12;
+pub const METADATA_SIZE: u64 = 48;
 
 #[repr(C)]
 pub struct FileInfo {
@@ -73,11 +75,9 @@ pub struct ArchiveHead {
 pub fn populate_metadata(info: &Vec<FileInfo>) -> Vec<Metadata> {
     let mut metadata_vec = Vec::new();
 
-    let archive_head_size = size_of::<ArchiveHead>() as u64;
-    let metadata_size = size_of::<Metadata>() as u64;
-    let metadata_start = archive_head_size;
+    let metadata_start = ARCHIVE_HEAD_SIZE;
 
-    let mut name_offset = metadata_start + metadata_size * info.len() as u64;
+    let mut name_offset = metadata_start + METADATA_SIZE * info.len() as u64;
 
     let mut path_offset = name_offset;
 
@@ -88,7 +88,7 @@ pub fn populate_metadata(info: &Vec<FileInfo>) -> Vec<Metadata> {
     let mut content_offset = path_offset;
 
     for item in info {
-        content_offset += item.path.as_os_str().len() as u64;
+        content_offset += path_archive_bytes(&item.path).len() as u64;
     }
 
     for item in info {
@@ -99,7 +99,7 @@ pub fn populate_metadata(info: &Vec<FileInfo>) -> Vec<Metadata> {
             name_size: item.name.len() as u32,
 
             path_offset,
-            path_size: item.path.as_os_str().len() as u32,
+            path_size: path_archive_bytes(&item.path).len() as u32,
 
             content_offset,
             content_size: item.content.len() as u64,
@@ -117,15 +117,26 @@ pub fn populate_metadata(info: &Vec<FileInfo>) -> Vec<Metadata> {
 
 pub fn create_archive(blob: &[Metadata]) -> ArchiveHead {
     ArchiveHead {
-        metadata_size: size_of_val(blob) as u32,
-        metadata_start: size_of::<ArchiveHead>() as u64,
+        metadata_size: (METADATA_SIZE * blob.len() as u64) as u32,
+        metadata_start: ARCHIVE_HEAD_SIZE,
     }
 }
 
-pub fn append_struct<T>(out: &mut Vec<u8>, value: &T) {
-    let bytes = unsafe {
-        std::slice::from_raw_parts(value as *const T as *const u8, std::mem::size_of::<T>())
-    };
+pub fn path_archive_bytes(path: &Path) -> Vec<u8> {
+    path.to_string_lossy().into_owned().into_bytes()
+}
 
-    out.extend_from_slice(bytes);
+pub fn append_archive_head(out: &mut Vec<u8>, value: &ArchiveHead) {
+    out.extend_from_slice(&value.metadata_size.to_le_bytes());
+    out.extend_from_slice(&value.metadata_start.to_le_bytes());
+}
+
+pub fn append_metadata(out: &mut Vec<u8>, value: &Metadata) {
+    out.extend_from_slice(&value.files_number.to_le_bytes());
+    out.extend_from_slice(&value.path_offset.to_le_bytes());
+    out.extend_from_slice(&value.path_size.to_le_bytes());
+    out.extend_from_slice(&value.content_offset.to_le_bytes());
+    out.extend_from_slice(&value.content_size.to_le_bytes());
+    out.extend_from_slice(&value.name_offset.to_le_bytes());
+    out.extend_from_slice(&value.name_size.to_le_bytes());
 }

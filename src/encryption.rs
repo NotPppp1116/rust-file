@@ -34,7 +34,7 @@ impl Encryption {
         io::stdin()
             .read_line(&mut answer)
             .expect("failed to readline");
-        self.password = answer.into_bytes();
+        self.password = answer.trim_end_matches(['\r', '\n']).as_bytes().to_vec();
     }
     fn derive_key(&mut self) {
         SysRng.try_fill_bytes(&mut self.salt).unwrap();
@@ -109,7 +109,7 @@ mod test {
     #[test]
     fn compression_encryption_flow_round_trips() {
         let input = b"hello encrypted compressed world".to_vec();
-        let password = b"test-password\n";
+        let password = b"test-password";
 
         let encrypted = encrypt_and_compress_with_password(&input, password, 3);
         let decrypted = crate::decrypt::decrypt_and_decomp_bytes(&encrypted, password);
