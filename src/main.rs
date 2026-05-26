@@ -1,14 +1,28 @@
+use std::time::{SystemTime, UNIX_EPOCH};
 use std::{env, fs, path::PathBuf, process::exit};
-
 mod compression;
 mod decrypt;
 mod encryption;
 mod file;
 mod read_back;
+mod send;
 mod utils;
 // name --dir <path>
 
-fn main() {
+const NAME: &str = "mole";
+const EXT: &str = "bin";
+//TODO make this better to a out file of argument
+macro_rules! uinique_name {
+    () => {{
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        format!("{}_{}.{}", NAME, now, EXT)
+    }};
+}
+#[tokio::main]
+async fn main() {
     let args: Vec<String> = env::args().collect();
     let command_index = match args.get(1).map(String::as_str) {
         Some("--enc" | "--dec" | "--mole") => 1,
@@ -49,9 +63,21 @@ fn main() {
                 final_blob.extend_from_slice(&file.content);
             }
 
-            encryption::encrypt_and_compress_flow(&mut final_blob);
+            let finale = encryption::encrypt_and_compress_flow(&mut final_blob);
 
-            //only keep the encrypted and compressed
+            //check if we want to send somewhere or no
+            if args[command_index + 2] == "--send" && !args[command_index + 3].is_empty() {
+                send::send_single(&args[command_index + 3], &final_blob)
+                    .await
+                    .expect("failed to send archive");
+            } else if args[command_index + 2] == "--recieve" && !args[command_index + 3].is_empty()
+            {
+                send::recieve_single(&args[command_index + 3])
+                    .await
+                    .expect("failed to receive archive");
+            }
+            fs::write(uinique_name!(), &finale).expect("failed to write archive");
+
             fs::remove_dir_all(directory_path).expect("failed to delete file");
         }
         Some("--dec") => {

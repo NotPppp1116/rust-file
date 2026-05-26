@@ -7,14 +7,10 @@ use argon2::Argon2;
 
 use rand::{TryRng, rngs::SysRng};
 
-use std::{fs, io};
+use std::io;
 use zeroize::Zeroize;
 
 use crate::compression;
-
-//TODO make this better to a out file of argument
-const OUTPUT_FILE: &str = "out.mole";
-const FALLBACK_OUTPUT_FILE: &str = "out324343.mole";
 
 pub struct Encryption {
     pub password: Vec<u8>,
@@ -72,7 +68,7 @@ impl Encryption {
 }
 
 //encrypts compresses and writes to file
-pub fn encrypt_and_compress_flow(contents: &mut Vec<u8>) {
+pub fn encrypt_and_compress_flow(contents: &mut Vec<u8>) -> Vec<u8> {
     let mut encryption = Encryption {
         password: Vec::new(),
         key: [0u8; 32],
@@ -83,12 +79,6 @@ pub fn encrypt_and_compress_flow(contents: &mut Vec<u8>) {
     encryption.ask_password();
     encryption.derive_key();
     let mut compressed = compression::compress(contents);
-    let enc_finale = encryption.encrypt(&mut compressed);
 
-    match fs::write(OUTPUT_FILE, &enc_finale) {
-        Ok(v) => v,
-        Err(_) => {
-            fs::write(FALLBACK_OUTPUT_FILE, &enc_finale).unwrap();
-        }
-    };
+    encryption.encrypt(&mut compressed)
 }
