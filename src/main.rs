@@ -14,7 +14,7 @@ mod utils;
 
 const NAME: &str = "mole";
 const EXT: &str = "bin";
-//TODO make this better to a out file of argument
+
 macro_rules! uinique_name {
     () => {{
         let now = SystemTime::now()

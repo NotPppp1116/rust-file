@@ -14,10 +14,14 @@ pub struct FileInfo {
 }
 
 pub fn read_dir(root: &Path) -> io::Result<Vec<FileInfo>> {
+    read_dir_from(root, root)
+}
+
+fn read_dir_from(root: &Path, current: &Path) -> io::Result<Vec<FileInfo>> {
     let mut files = Vec::new();
 
     // If the root directory itself cannot be opened, return error.
-    let entries = fs::read_dir(root)?;
+    let entries = fs::read_dir(current)?;
 
     for entry in entries {
         // If one entry is bad, skip only that one.
@@ -27,7 +31,11 @@ pub fn read_dir(root: &Path) -> io::Result<Vec<FileInfo>> {
 
         let path = entry.path();
 
-        if !path.is_file() {
+        if path.is_dir() {
+            let Ok(mut sub_files) = read_dir_from(root, &path) else {
+                continue;
+            };
+            files.append(&mut sub_files);
             continue;
         }
 

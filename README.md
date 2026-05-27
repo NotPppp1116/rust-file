@@ -143,16 +143,6 @@ The encrypted file contains:
 Inside the compressed archive, metadata is written in little-endian fields,
 followed by file names, relative paths, and file contents.
 
-## Current Limitations
-
-- Only direct files in the chosen directory are archived; nested directories are
-  skipped.
-- The encrypt command deletes the source directory after archive creation.
-- Network transfer is plain TCP. The archive content is encrypted, but discovery
-  messages are not.
-- Discovery only prints a matching receiver address; it is not yet automatically
-  connected to `--send`.
-- File paths are stored as lossy UTF-8 strings.
 
 ## License
 
