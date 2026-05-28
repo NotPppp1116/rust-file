@@ -10,7 +10,7 @@ use rand::{TryRng, rngs::SysRng};
 use std::io;
 use zeroize::Zeroize;
 
-use crate::compression;
+use crate::{compression, debug_safety::is_being_debugged};
 
 pub struct Encryption {
     pub password: Vec<u8>,
@@ -30,6 +30,10 @@ impl Drop for Encryption {
 
 impl Encryption {
     pub fn ask_password(&mut self) {
+        //see if we are being debugged if yes panic with unwind so destructor runs
+        if is_being_debugged() == true {
+            panic!();
+        }
         let mut answer = String::new();
         io::stdin()
             .read_line(&mut answer)

@@ -7,7 +7,7 @@ use chacha20poly1305::{
 use std::fs::File;
 use std::io::{self, ErrorKind, Read};
 
-use crate::{compression, encryption::Encryption};
+use crate::{compression, debug_safety, encryption::Encryption};
 
 impl Encryption {
     fn get_salt_n_nounce(&mut self, path: &str) -> io::Result<Vec<u8>> {
@@ -45,7 +45,10 @@ pub fn decrypt_and_decomp(path: &str) -> io::Result<Vec<u8>> {
         nonce: [0u8; 24],
         salt: [0u8; 16],
     };
-
+    //see if we are being debugged if yes panic with unwind so destructor runs
+    if debug_safety::is_being_debugged() == true {
+        panic!();
+    }
     encryption.ask_password();
 
     let content = encryption.get_salt_n_nounce(path)?;

@@ -3,10 +3,12 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use std::{env, fs, path::PathBuf, process::exit};
 
 mod compression;
+mod debug_safety;
 mod decrypt;
 mod discovery;
 mod encryption;
 mod file;
+mod google_drive;
 mod read_back;
 mod send;
 mod utils;
