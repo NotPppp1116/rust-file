@@ -1,4 +1,8 @@
 use std::io::{self, Write};
+use uuid::Uuid;
+
+const ARCHIVE_NAME: &str = "mole";
+const ARCHIVE_EXTENSION: &str = "bin";
 
 pub fn ask_number(message: &str) -> i32 {
     loop {
@@ -18,11 +22,11 @@ pub fn ask_number(message: &str) -> i32 {
 }
 pub fn help() {
     println!("usage:");
-    println!("  rust-file --enc --dir <directory_path> [--send <host:port>]");
-    println!("  rust-file --receive <port>");
-    println!("  rust-file --dec <archive_path> [output_directory]");
-    println!("  rust-file --discover-serve <file_name> <host:port>");
-    println!("  rust-file --find-receiver <file_name>");
+    println!("  rust-file encrypt --dir <directory_path> [--send <host:port>]");
+    println!("  rust-file receive <port>");
+    println!("  rust-file decrypt <archive_path> [output_directory]");
+    println!("  rust-file serve-discovery <file_name> <host:port>");
+    println!("  rust-file find-receiver <file_name>");
 }
 pub fn easteregg() {
     println!("%%@@@@%%%%%%%%%%#%%@@@@%%%%%##%%%%%%%@@@%%%%%#%%%%#%%%%%%%@%%%%@@@%%%%%%%%%%@@%%%%%%@@@@@@@@@%%%%%@@%%%%@@@@%
@@ -61,4 +65,10 @@ pub fn easteregg() {
 .-- -===-.::==:=-..--.: ==----.-----==: --.:+*=..==:--:----:-----:.-.-.  .   -:--:.::==:::-:::-- .:--- .-=-:-
 :..=-=-:: =:----::--.::::-:-=-..-:: --.-----:-=--::-:=-.-:-+--===-:----=-:-.--.: .-. :=:=-==--:-::-==-.:---=.
 ")
+}
+
+pub fn generate_uuid_name() -> String {
+    let unique_id = Uuid::new_v4();
+
+    format!("{}_{}.{}", ARCHIVE_NAME, unique_id, ARCHIVE_EXTENSION)
 }

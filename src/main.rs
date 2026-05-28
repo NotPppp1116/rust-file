@@ -1,5 +1,3 @@
-use rand::prelude::*;
-use std::time::{SystemTime, UNIX_EPOCH};
 use std::{env, fs, path::PathBuf, process::exit};
 
 mod compression;
@@ -12,39 +10,19 @@ mod google_drive;
 mod read_back;
 mod send;
 mod utils;
-// name --dir <path>
 
-const NAME: &str = "mole";
-const EXT: &str = "bin";
-
-macro_rules! uinique_name {
-    () => {{
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        let pid = std::process::id();
-
-        let mut rng = rand::rng();
-        let num: u64 = rng.random();
-        format!("{}_{}_{}_{}.{}", NAME, num, pid, now, EXT)
-    }};
-}
 #[tokio::main]
 async fn main() {
     let args: Vec<String> = env::args().collect();
     let command_index = match args.get(1).map(String::as_str) {
-        Some(
-            "--enc" | "--dec" | "--mole" | "--receive" | "--recieve" | "--discover-serve"
-            | "--find-receiver",
-        ) => 1,
+        Some("encrypt" | "decrypt" | "mole" | "receive" | "serve-discovery" | "find-receiver") => 1,
         _ => 2,
     };
 
-    let file_name = uinique_name!();
+    let file_name = utils::generate_uuid_name();
 
     match args.get(command_index).map(String::as_str) {
-        Some("--enc") if args.get(command_index + 1).map(String::as_str) == Some("--dir") => {
+        Some("encrypt") if args.get(command_index + 1).map(String::as_str) == Some("--dir") => {
             let Some(directory_path) = args.get(command_index + 2).filter(|path| !path.is_empty())
             else {
                 println!("launch with args\n");
@@ -95,19 +73,19 @@ async fn main() {
 
             fs::remove_dir_all(directory_path).expect("failed to delete file");
         }
-        Some("--receive" | "--recieve") => {
+        Some("receive") => {
             let Some(port) = args.get(command_index + 1).filter(|port| !port.is_empty()) else {
                 println!("launch with args\n");
                 utils::help();
                 exit(1);
             };
 
-            let received = send::recieve_single(port)
+            let received = send::receive_single(port)
                 .await
                 .expect("failed to receive archive");
             fs::write(file_name, received).expect("failed to write received archive");
         }
-        Some("--dec") => {
+        Some("decrypt") => {
             let Some(archive_path) = args.get(command_index + 1).filter(|path| !path.is_empty())
             else {
                 println!("launch with args\n");
@@ -120,8 +98,8 @@ async fn main() {
 
             read_back::restore_archive(&archive, output_root).expect("failed to restore archive");
         }
-        Some("--mole") => utils::easteregg(),
-        Some("--discover-serve") => {
+        Some("mole") => utils::easteregg(),
+        Some("serve-discovery") => {
             let (Some(file_name), Some(receiver_addr)) =
                 (args.get(command_index + 1), args.get(command_index + 2))
             else {
@@ -134,7 +112,7 @@ async fn main() {
                 .await
                 .expect("failed to serve receiver discovery");
         }
-        Some("--find-receiver") => {
+        Some("find-receiver") => {
             let Some(file_name) = args.get(command_index + 1) else {
                 println!("launch with args\n");
                 utils::help();

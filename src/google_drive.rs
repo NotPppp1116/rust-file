@@ -31,6 +31,6 @@ async fn login() -> Result<()> {
     println!("{auth_url}");
     webbrowser::open(auth_url.as_str())?;
 
-    // next: use the listener to recieve the call bacck code
+    // next: use the listener to receive the callback code
     Ok(())
 }
